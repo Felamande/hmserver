@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <!--link标签引用外部文件-->
+    <link rel="stylesheet" href="static/css/page.css" type="text/css" />
+    <link rel="stylesheet" href="static/css/bootstrap.css" type="text/css" />
+    <link rel="stylesheet" href="static/css/jquery.ui.min.css" type="text/css" />
+    <script src="static/js/jquery.min.js"></script>
+    <script src="static/js/home.js"></script>
+    <script src="static/js/jquery.datagrid.js"></script>
+    <script src="static/js/bootstrap.min.js"></script>
+    <script src="static/js/jquery.datagrid.bootstrap3.js"></script>
+    <script src="static/js/jquery.ui.min.js"></script>
+
+    <link rel="shortcut icon" href="static/img/favicon.ico" />
+    <link rel="bookmark" href="static/img/favicon.ico" />
+    <title>我的个人主页</title>
+</head>
+
+<body>
+
+    <div id="anchor">
+    </div>
+
+
+    <div id="head">
+        <img id="myimg" style="float: left;border-radius: 3px;" src="static/img/favicon.ico" width="40px" height="40px" />
+        <span id="configure-wrap" class="button-wrap">
+                <img src="static/img/Configure.png" style="height:33px;">
+            </span>
+        <span id="contact-wrap" class="button-wrap">
+                <a style="text-decoration: blink;color: white;" href="mailto://tangzhuohao@hotmail.com">联 系 我</a>
+            </span>
+        <div id="configure-panel" style="display:none;">设 置<pre style="color:black">调整颜色</pre>
+            <span id="color-slider"></span>
+            <pre>选择背景图片</pre>
+            <form enctype="multipart/form-data" action="/user/upload/bkimg" method="post" id="submit-bkimg">
+                <input type="file" name="bkimg" id="choosefile" />
+                <input type="submit" value="上传文件" id="submitBtn" />
+            </form>
+        </div>
+
+    </div>
+    <!--主要区域-->
+    <div id="main-sec">
+        <!--导航栏 中部-->
+        <div id="navigation-section">
+            <h1 align="center" id="nav-title"><br/><pre>驻             足</pre></h1>
+            <nav id="nav-items">
+                <!--跨域跳转-->
+                <div class="item-div"><a target="_blank" class="nav-item" id="nav-item-1" href="http://www.baidu.com">文章</a></div>
+                <div class="item-div"><a target="_blank" class="nav-item" id="nav-item-2" href="http://www.google.com.hk">图片</a></div>
+                <div class="item-div"><a target="_blank" class="nav-item" id="nav-item-2" href="http://cn.bing.com">收藏</a></div>
+            </nav>
+
+        </div>
+
+        <div id="aside-section">
+            <div id="user-section">
+                <div id="text-login">
+                    <br />用户登录</div>
+                <form action="" id="login-form">
+                    <input name="name" class="input-text" type="text" id="username-text" placeholder="用户名" />
+                    <input name="pwd" class="input-text" type="password" id="password-text" placeholder="密码" />
+                </form>
+                <input id="login-btn" type="submit" value="登 录"></input>
+            </div>
+
+            <div id="category-section"></div>
+        </div>
+        <!-- main-sec里左边的区域 -->
+        <div id="function-section" style="margin: none;">
+
+        </div>
+    </div>
+</body>
+
+</html>
