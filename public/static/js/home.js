@@ -48,24 +48,25 @@ $(document).ready(function () {
             }
             $("#login-form,#login-btn").css("display", "none")
             $("#text-login").html("<br />" + json.data)
+
         })
     })
     //设置面板，可以改变页面风格
     var panel = $("#configure-panel")
 
-    $("#configure-wrap").click(function(){
+    $("#configure-wrap").click(function () {
         panel.slideToggle()
     })
-    
-    
-    $("#color-slider").slider({
-        orientation:"horizontal",
-        ragne:"min",
-        max:255,
-        min:0
+
+
+    $("#green,#red,#blue").slider({
+        orientation: "horizontal",
+        ragne: "min",
+        max: 255,
+        min: 0,
         // value:127,
-        // slide:changeColor,
-        // change:changeColor
+        slide: changeColor,
+        change: changeColor
     })
 
 })
@@ -152,11 +153,11 @@ function datagrid(content) {
 }
 
 function article(content) {
-    
+
 }
 
-function imageLoop(content){
-    
+function imageLoop(content) {
+
 }
 
 function anchor(text, index) {
@@ -165,4 +166,29 @@ function anchor(text, index) {
     a.html(text)
     a.attr({ href: "#" + "function-item-" + index })
     anchorItem.appendTo("#anchor")
+}
+
+function changeColor() {
+    var red = $("#configure-panel #red").slider("value")
+    var green = $("#configure-panel #green").slider("value")
+    var blue = $("#configure-panel #blue").slider("value")
+
+    var redVal = parseInt(red).toString(16)
+    if (redVal.length == 1){
+        redVal = "0" + redVal
+    }
+    var grnVal = parseInt(green).toString(16)
+    if (grnVal.length == 1){
+        grnVal = "0" + grnVal
+    }
+    var blueVal = parseInt(blue).toString(16)
+    if (blueVal.length == 1){
+        blueVal = "0" + blueVal
+    }
+
+    var hex = "#" + redVal + grnVal + blueVal
+    $(".function-title,.button-wrap").css("background-color", hex)
+    $(".anchor-item a").css("color", hex)
+
+
 }

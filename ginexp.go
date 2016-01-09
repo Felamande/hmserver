@@ -53,6 +53,7 @@ func main() {
 		r.Group("/upload", func(rr martini.Router) {
 			rr.Post("/bkimg", binding.MultipartForm(Bkimg{}), UploadBkimg)
 		}, cookie.Bind(UserCookie{}))
+        
 	})
 
 	//映射服务
@@ -243,6 +244,11 @@ func CheckLoginHandler(cookie UserCookie, r render.Render, config Config) {
 }
 
 func UploadBkimg(img Bkimg, r render.Render, cookie UserCookie, config Config, logger *log.Logger) {
+	if !cookie.Validate() {
+		logger.Info("Fail to auth whith cookie:", cookie)
+		r.JSON(http.StatusOK, J{"data": nil})
+		return
+	}
 	file, err := img.Content.Open()
 	if err != nil {
 		r.JSON(http.StatusInternalServerError, J{"data": nil})
@@ -273,7 +279,7 @@ func UploadBkimg(img Bkimg, r render.Render, cookie UserCookie, config Config, l
 	if fi, _ := os.Stat(fileName); fi != nil {
 		r.JSON(http.StatusOK, J{"data": "upload ok", "err": nil})
 		logger.Info("file exists:", fileName)
-		return
+		goto CommitToDB
 	}
 	err = ioutil.WriteFile(fileName, b, 0600)
 	if err != nil {
@@ -281,6 +287,19 @@ func UploadBkimg(img Bkimg, r render.Render, cookie UserCookie, config Config, l
 		return
 	}
 
+CommitToDB:
+	db, err := gorm.Open(config.DB.Type, config.DB.Uri)
+	if err != nil {
+		r.JSON(http.StatusInternalServerError, J{"data": nil})
+		return
+	}
+
+	if err = db.Table("users").Where(&cookie).Update("bkimg", fileMd5).Error; err != nil {
+		r.JSON(http.StatusInternalServerError, J{"data": nil})
+		return
+	}
 	r.JSON(http.StatusOK, J{"data": "upload ok", "err": nil})
 
 }
+
+func 
