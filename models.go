@@ -72,7 +72,7 @@ type UserRegisterForm struct {
 }
 
 func (f UserRegisterForm) Validate() bool {
-	matched, _ := regexp.MatchString(`[:alnum:]+`, f.Name)
+	matched, _ := regexp.MatchString(`^[a-z|A-Z|0-9]+$`, f.Name)
 	return len(f.Name) <= 10 && matched
 
 }

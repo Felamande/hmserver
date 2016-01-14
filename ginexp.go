@@ -21,6 +21,8 @@ import (
 	"image"
 
 	_ "github.com/go-sql-driver/mysql"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func main() {
@@ -50,8 +52,9 @@ func main() {
 		r.Post("/logout")
 		r.Post("/register", binding.Form(UserRegisterForm{}), RegisterHandler)
 		r.Post("/checklogin", cookie.Bind(UserCookie{}), CheckLoginHandler)
-		r.Group("/upload", func(rr martini.Router) {
-			rr.Post("/bkimg", binding.MultipartForm(Bkimg{}), UploadBkimg)
+		r.Group("/bkimg", func(rr martini.Router) {
+			rr.Post("/upload", binding.MultipartForm(Bkimg{}), UploadBkimg)
+			rr.Get("/get", GetBkimg)
 		}, cookie.Bind(UserCookie{}))
 
 	})
@@ -236,7 +239,7 @@ func CheckLoginHandler(cookie UserCookie, r render.Render, config Config) {
 	var count int
 	db.Table("users").Where(&cookie).Count(&count)
 	if count == 0 {
-		r.JSON(http.StatusOK, J{"data": nil})
+		r.JSON(http.StatusOK, J{"data": nil, "err": J{"code": 102, "msg": "invalid user"}})
 		return
 	}
 
@@ -245,59 +248,87 @@ func CheckLoginHandler(cookie UserCookie, r render.Render, config Config) {
 
 func UploadBkimg(img Bkimg, r render.Render, cookie UserCookie, config Config, logger *log.Logger) {
 	if !cookie.Validate() {
+		r.Redirect("/", http.StatusUnauthorized)
 		logger.Info("Fail to auth whith cookie:", cookie)
-		r.JSON(http.StatusOK, J{"data": nil})
 		return
 	}
 	file, err := img.Content.Open()
 	if err != nil {
-		r.JSON(http.StatusInternalServerError, J{"data": nil})
+		r.Redirect("/", http.StatusInternalServerError)
 		return
 	}
 
 	b, err := ioutil.ReadAll(file)
 	if err != nil {
-		r.JSON(http.StatusInternalServerError, J{"data": nil})
+		r.Redirect("/", http.StatusInternalServerError)
 		return
 	}
 	_, format, err := image.Decode(bytes.NewReader(b))
 	switch err {
 	case image.ErrFormat:
-		r.JSON(http.StatusOK, J{"data": nil, "err": J{"code": 400, "msg": "invalid format"}})
+		r.Redirect("/", http.StatusOK)
 		return
 	case nil:
 		break
 	default:
-		r.JSON(http.StatusInternalServerError, J{"data": nil})
+		r.Redirect("/", http.StatusInternalServerError)
 		logger.Info(err.Error())
 		return
 	}
 
 	fileMd5 := util.Md5(b)
-	fileName := filepath.Join(config.Server.StaticHome, "img/bk", fileMd5+"."+format)
+	fileName := fileMd5 + "." + format
+	fileFullName := filepath.Join(config.Server.StaticHome, "img/bk", fileName)
 
-	if fi, _ := os.Stat(fileName); fi != nil {
-		r.JSON(http.StatusOK, J{"data": "upload ok", "err": nil})
-		logger.Info("file exists:", fileName)
+	if fi, _ := os.Stat(fileFullName); fi != nil {
+		r.Redirect("/", http.StatusFound)
+		logger.Info("file exists:", fileFullName)
 		goto CommitToDB
 	}
-	err = ioutil.WriteFile(fileName, b, 0600)
+	err = ioutil.WriteFile(fileFullName, b, 0600)
 	if err != nil {
-		r.JSON(http.StatusInternalServerError, J{"data": nil})
+		r.Redirect("/", http.StatusInternalServerError)
 		return
 	}
 
 CommitToDB:
 	db, err := gorm.Open(config.DB.Type, config.DB.Uri)
 	if err != nil {
-		r.JSON(http.StatusInternalServerError, J{"data": nil})
+		r.Redirect("/", http.StatusInternalServerError)
 		return
 	}
 
-	if err = db.Table("users").Where(&cookie).Update("bkimg", fileMd5).Error; err != nil {
-		r.JSON(http.StatusInternalServerError, J{"data": nil})
+	if err = db.Table("users").Where(&cookie).Update("bkimg", fileName).Error; err != nil {
+		r.Redirect("/", http.StatusInternalServerError)
 		return
 	}
-	r.JSON(http.StatusOK, J{"data": "upload ok", "err": nil})
+	r.Redirect("/", http.StatusFound)
+
+}
+
+func GetBkimg(cookie UserCookie, config Config, logger *log.Logger, r render.Render) {
+	if !cookie.Validate() {
+		r.JSON(http.StatusOK, J{"data": nil})
+		logger.Info("Fail to auth whith cookie:", cookie)
+		return
+	}
+
+	db, err := gorm.Open(config.DB.Type, config.DB.Uri)
+	if err != nil {
+		r.JSON(http.StatusInternalServerError, J{"data": nil, "err": J{"code": 201, "msg": "database open error."}})
+		return
+	}
+	var BkimgName string
+
+	row := db.Table("users").Where(&cookie).Select("bkimg").Row()
+
+	if row == nil {
+		r.JSON(http.StatusInternalServerError, J{"data": nil})
+		logger.Error(err)
+		return
+	}
+
+	row.Scan(&BkimgName)
+	r.JSON(http.StatusOK, J{"data": BkimgName, "err": nil})
 
 }

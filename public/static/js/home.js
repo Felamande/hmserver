@@ -5,15 +5,6 @@
 var repeatType = { 0: "每日重复", 1: "每周重复", 2: "每月重复" }
 
 $(document).ready(function () {
-    
-    //通过验证cookie检查用户是否已经登陆，如果已经登录就把登录框隐藏。
-    $.post("/user/checklogin", null, function (json) {
-        if (json.data) {
-            $("#login-form,#login-btn").css("display", "none")
-            $("#text-login").html("<br />" + json.data)
-        }
-    })
-    
     //定义页面上几个item的标题，内容等属性，传入initItems函数中添加到页面上
     var funcItems = [
         {
@@ -34,8 +25,22 @@ $(document).ready(function () {
             media: [],
         }
     ]
+    
+    //通过验证cookie检查用户是否已经登陆，如果已经登录就把登录框隐藏。
+    $.post("/user/checklogin", null, function (json) {
+        if (!json.data) {
+            alert(json.err.msg)
+            return
+        }
+        $("#login-form,#login-btn").css("display", "none")
+        $("#text-login").html("<br />" + json.data)
+        initItems(funcItems)//加载用户的数据
+        loadBkimg()
+    })
+    
+    
 
-    initItems(funcItems)
+    
     
     //ajax post登录
     $("#login-btn").click(function () {
@@ -48,7 +53,8 @@ $(document).ready(function () {
             }
             $("#login-form,#login-btn").css("display", "none")
             $("#text-login").html("<br />" + json.data)
-
+            initItems(funcItems)
+            loadBkimg()
         })
     })
     //设置面板，可以改变页面风格
@@ -72,7 +78,7 @@ $(document).ready(function () {
 })
 
 function initItems(funcItems) {
-
+    $(".function-item").remove()
     var funcSec = $("#function-section")
 
     for (var i in funcItems) {
@@ -192,4 +198,15 @@ function changeColor() {
     $(".anchor-item a").css("color", hex)
 
 
+}
+
+function loadBkimg(){
+    $.get("/user/bkimg/get",null,function(json){
+        if(!json.data || json.data.length==0){
+            return
+        }
+        var imgUrl = "/static/img/bk/"+json.data
+        $(document.body).css({"background-image":"url(\""+ imgUrl+"\")","background-attachment":"fixed",})
+        console.log($(document.body).css("background-image"))
+    })
 }
