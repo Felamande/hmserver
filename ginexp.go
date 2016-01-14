@@ -53,7 +53,7 @@ func main() {
 		r.Group("/upload", func(rr martini.Router) {
 			rr.Post("/bkimg", binding.MultipartForm(Bkimg{}), UploadBkimg)
 		}, cookie.Bind(UserCookie{}))
-        
+
 	})
 
 	//映射服务
@@ -301,5 +301,3 @@ CommitToDB:
 	r.JSON(http.StatusOK, J{"data": "upload ok", "err": nil})
 
 }
-
-func 

@@ -173,6 +173,7 @@ function changeColor() {
     var green = $("#configure-panel #green").slider("value")
     var blue = $("#configure-panel #blue").slider("value")
 
+    //将0-255的数值转化为16进制
     var redVal = parseInt(red).toString(16)
     if (redVal.length == 1){
         redVal = "0" + redVal
