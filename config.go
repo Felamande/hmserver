@@ -1,3 +1,4 @@
+//服务端设置项的结构体，读取config.ini映射到Config结构体中。
 package main
 
 import "github.com/go-ini/ini"

@@ -152,8 +152,6 @@ function datagrid(content) {
                 }],
             attr: { "class": "table table-bordered table-condensed" },
             sorter: "bootstrap"
-
-
         });
     })
 }

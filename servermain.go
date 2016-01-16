@@ -1,28 +1,28 @@
 package main
 
 import (
+    //标准库的包
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
-
+    "io/ioutil"
+	"bytes"
+	"image"
+    
+    //引用的第三方开源包
 	"github.com/go-martini/martini"
 	"github.com/jinzhu/gorm"
 	"github.com/martini-contrib/binding"
 	"github.com/martini-contrib/render"
 	"github.com/qiniu/log"
+    _ "github.com/go-sql-driver/mysql"
 
-	"github.com/Felamande/hmserver/cookie"
+    //本人写的包，即是src/cookie目录和src/util目录，Felamande是本人的github用户名。
+	"github.com/Felamande/hmserver/cookie" 
 	"github.com/Felamande/hmserver/util"
 
-	"io/ioutil"
-
-	"bytes"
-	"image"
-
-	_ "github.com/go-sql-driver/mysql"
-
-	_ "github.com/mattn/go-sqlite3"
+	
 )
 
 func main() {
@@ -31,16 +31,23 @@ func main() {
 	config := InitConfig()
 
 	//添加中间件
-	server.Use(render.Renderer(render.Options{
+	server.Use(render.Renderer(render.Options{//render中间件可以把对象方便的序列化为xml或者json
 		Directory:  "./html",
 		Extensions: []string{".html"},
 		Charset:    "UTF-8",
 	}))
-	server.Use(martini.Static("public"))
+	server.Use(martini.Static("public"))//静态文件服务
 
 	//添加路由
+    //第一个参数是url路径，
+    //之后的参数是处理该路径请求的处理函数，
+    //可以添加多个，依次调用
+    //方法名表示该路径的HTTP方法，表示只能用GET访问该路径。
 	server.Get("/", cookie.Bind(UserCookie{}), handleHome)
-
+    
+    //Group是父路径下添加子路径，下面url分别表示/sched/all, /sched/all, /sched/delete。
+    //在父路径里添加的处理函数在子路径中都会运行，
+    //比如下面的cookie.Bind(UserCookie{})，该方法返回值是一个函数，表示这个路径以及所有的子路径都绑定了一个cookie。
 	server.Group("/sched", func(r martini.Router) {
 		r.Post("/add", binding.Form(Sched{}), handleAddSched)
 		r.Get("/all", handleGetSched)
@@ -61,6 +68,7 @@ func main() {
 
 	//映射服务
 	logger := log.New(os.Stdout, "[martini] ", log.Llevel|log.Lshortfile|log.Lmodule)
+    //Map方法传入的对象可以被传入到处理函数的对应参数中。
 	server.Map(logger)
 	server.Map(config)
 
@@ -106,7 +114,7 @@ func handleAddSched(cookie UserCookie, schedForm Sched, r render.Render, logger 
 
 }
 
-//handleGetSched URL:/sched/all
+//handleGetSched URL:/sched/all 获取日程表数据
 func handleGetSched(r render.Render, logger *log.Logger, config Config, cookie UserCookie) {
 
 	if !cookie.Validate() {
@@ -139,10 +147,8 @@ func handleGetSched(r render.Render, logger *log.Logger, config Config, cookie U
 
 	logger.Info("Schedule items total", len(sched), "in JSON,", "with cookie:", cookie)
 }
-func handleDelSched(r render.Render, logger *log.Logger) {
 
-}
-
+//LoginHandler url: /user/login
 func LoginHandler(w http.ResponseWriter, config Config, form UserLoginForm, r render.Render, logger *log.Logger) {
 	if !form.Validate() {
 		r.JSON(http.StatusOK, J{"data": nil, "err": J{"code": 101, "msg": "invalid form"}})
@@ -191,6 +197,7 @@ func LoginHandler(w http.ResponseWriter, config Config, form UserLoginForm, r re
 
 }
 
+//RegisterHandler url: /user/register
 func RegisterHandler(w http.ResponseWriter, config Config, form UserRegisterForm, r render.Render, logger *log.Logger) {
 	if !form.Validate() {
 		r.JSON(http.StatusOK, J{"data": nil, "err": J{"code": 100, "msg": "invalid name"}})
@@ -224,6 +231,7 @@ func RegisterHandler(w http.ResponseWriter, config Config, form UserRegisterForm
 
 }
 
+//CheckLoginHandler url: /user/checklogin
 func CheckLoginHandler(cookie UserCookie, r render.Render, config Config) {
 	if !cookie.Validate() {
 		r.JSON(http.StatusOK, J{"data": nil})
@@ -246,23 +254,29 @@ func CheckLoginHandler(cookie UserCookie, r render.Render, config Config) {
 	r.JSON(http.StatusOK, J{"data": cookie.Name})
 }
 
+//UploadBkimg url: /user/bkimg/upload
 func UploadBkimg(img Bkimg, r render.Render, cookie UserCookie, config Config, logger *log.Logger) {
+    //检查cookie的有效性
 	if !cookie.Validate() {
 		r.Redirect("/", http.StatusUnauthorized)
 		logger.Info("Fail to auth whith cookie:", cookie)
 		return
 	}
+    //打开上传文件
 	file, err := img.Content.Open()
 	if err != nil {
 		r.Redirect("/", http.StatusInternalServerError)
 		return
 	}
-
+    
+    //将文件内容全被读出来
 	b, err := ioutil.ReadAll(file)
 	if err != nil {
 		r.Redirect("/", http.StatusInternalServerError)
 		return
 	}
+    
+    //检查该图片文件的类型，如果不是图片文件的话那么上传失败，返回。
 	_, format, err := image.Decode(bytes.NewReader(b))
 	switch err {
 	case image.ErrFormat:
@@ -275,11 +289,13 @@ func UploadBkimg(img Bkimg, r render.Render, cookie UserCookie, config Config, l
 		logger.Info(err.Error())
 		return
 	}
-
+    
+    //计算文件的md5，作为唯一表示以及文件名。
 	fileMd5 := util.Md5(b)
 	fileName := fileMd5 + "." + format
 	fileFullName := filepath.Join(config.Server.StaticHome, "img/bk", fileName)
-
+    
+    //如果该文件存在那么直接跳到接入数据库
 	if fi, _ := os.Stat(fileFullName); fi != nil {
 		r.Redirect("/", http.StatusFound)
 		logger.Info("file exists:", fileFullName)
@@ -290,7 +306,8 @@ func UploadBkimg(img Bkimg, r render.Render, cookie UserCookie, config Config, l
 		r.Redirect("/", http.StatusInternalServerError)
 		return
 	}
-
+    
+//将该图片文件的文件名存入users表的bkimg字段中。
 CommitToDB:
 	db, err := gorm.Open(config.DB.Type, config.DB.Uri)
 	if err != nil {
@@ -306,6 +323,7 @@ CommitToDB:
 
 }
 
+//GetBkimg url: /user/bkimg/get
 func GetBkimg(cookie UserCookie, config Config, logger *log.Logger, r render.Render) {
 	if !cookie.Validate() {
 		r.JSON(http.StatusOK, J{"data": nil})

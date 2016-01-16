@@ -1,3 +1,4 @@
+//主要的结构体，包括各自表单，用户，日程表以及cookie结构体。
 package main
 
 import (
@@ -19,17 +20,9 @@ type UserKey struct {
 	Priv   string `cookie:"p" sql:"priv"`
 }
 
-func (k UserKey) Validate() bool {
-	return len(k.SecKey) != 0 && len(k.Priv) != 0
-}
-
 type UserLoginForm struct {
 	Pwd  string `form:"pwd" binding:"required"`
 	Name string `form:"name" binding:"required"`
-}
-
-func (f UserLoginForm) Validate() bool {
-	return len(f.Pwd) != 0 && len(f.Name) != 0
 }
 
 type UserCookie struct {
@@ -38,15 +31,6 @@ type UserCookie struct {
 	Priv   string `cookie:"p" sql:"priv"`
 }
 
-func (cookie UserCookie) Validate() bool {
-	v := reflect.ValueOf(cookie)
-	for i := 0; i < v.NumField(); i++ {
-		if v.Field(i).Interface().(string) == "" {
-			return false
-		}
-	}
-	return true
-}
 
 type Sched struct {
 	Year  int  `form:"year" json:"year" binding:"required" sql:"year"`
@@ -62,13 +46,24 @@ type Sched struct {
 	Repeat int `form:"repeat" json:"repeat" binding:"required" gorm:"column:repeattype"`
 }
 
-func (s Sched) Validate() bool {
-	return s.Month >= 1 && s.Month <= 12 && s.Day >= 1 && s.Day <= 21 && s.Hour >= 0 && s.Hour <= 24 && s.Minute >= 0 && s.Minute <= 59 && s.Repeat >= 0 && s.Repeat <= 2
-}
 
 type UserRegisterForm struct {
 	Pwd  string `form:"pwd" binding:"required"`
 	Name string `form:"name" binding:"required"`
+}
+
+type Bkimg struct{
+    Content *multipart.FileHeader   `form:"bkimg" binding:"required"` 
+}
+
+type J map[string]interface{}
+
+func (k UserKey) Validate() bool {
+	return len(k.SecKey) != 0 && len(k.Priv) != 0
+}
+
+func (f UserLoginForm) Validate() bool {
+	return len(f.Pwd) != 0 && len(f.Name) != 0
 }
 
 func (f UserRegisterForm) Validate() bool {
@@ -77,8 +72,16 @@ func (f UserRegisterForm) Validate() bool {
 
 }
 
-type Bkimg struct{
-    Content *multipart.FileHeader   `form:"bkimg" binding:"required"` 
+func (s Sched) Validate() bool {
+	return s.Month >= 1 && s.Month <= 12 && s.Day >= 1 && s.Day <= 21 && s.Hour >= 0 && s.Hour <= 24 && s.Minute >= 0 && s.Minute <= 59 && s.Repeat >= 0 && s.Repeat <= 2
 }
 
-type J map[string]interface{}
+func (cookie UserCookie) Validate() bool {
+	v := reflect.ValueOf(cookie)
+	for i := 0; i < v.NumField(); i++ {
+		if v.Field(i).Interface().(string) == "" {
+			return false
+		}
+	}
+	return true
+}
